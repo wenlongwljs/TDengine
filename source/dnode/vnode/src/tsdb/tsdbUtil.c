@@ -1070,9 +1070,10 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
             valType = TD_VTYPE_NONE;
             ASSERT(0);
           }
+
+          colVal.cid = pTColumn->colId;
+          colVal.type = pTColumn->type;
           if (valType == TD_VTYPE_NORM) {
-            colVal.cid = pTColumn->colId;
-            colVal.type = pTColumn->type;
             colVal.flag = CV_FLAG_VALUE;
             if (IS_VAR_DATA_TYPE(pTColumn->type)) {
               void *val = POINTER_SHIFT(
@@ -1084,9 +1085,9 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
                      tDataTypes[pTColumn->type].bytes);
             }
           } else if (valType == TD_VTYPE_NONE) {
-            colVal = COL_VAL_NONE(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NONE;
           } else if (valType == TD_VTYPE_NULL) {
-            colVal = COL_VAL_NULL(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NULL;
           } else {
             ASSERT(0);
           }
@@ -1110,9 +1111,9 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
             ASSERT(0);
           }
 
+          colVal.cid = pTColumn->colId;
+          colVal.type = pTColumn->type;
           if (valType == TD_VTYPE_NORM) {
-            colVal.cid = pTColumn->colId;
-            colVal.type = pTColumn->type;
             colVal.flag = CV_FLAG_VALUE;
             if (IS_VAR_DATA_TYPE(pTColumn->type)) {
               void *val = POINTER_SHIFT(
@@ -1124,9 +1125,9 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
                      tDataTypes[pTColumn->type].bytes);
             }
           } else if (valType == TD_VTYPE_NONE) {
-            colVal = COL_VAL_NONE(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NONE;
           } else if (valType == TD_VTYPE_NULL) {
-            colVal = COL_VAL_NULL(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NULL;
           } else {
             ASSERT(0);
           }
@@ -1134,17 +1135,18 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
       }
     } else if (TD_IS_KV_ROW(pTSRow)) {
       // todo (cary)
-      col_id_t   nKvCols = tdRowGetNCols(pTSRow);
+      col_id_t   kvIter = 0;
+      col_id_t   nKvCols = tdRowGetNCols(pTSRow) - 1;
       void      *pColIdx = TD_ROW_COL_IDX(pTSRow);
       SKvRowIdx *pKvIdx = NULL;
-      col_id_t   kvIter = 0;
-      pBitmap = tdGetBitmapAddrKv(pTSRow, nKvCols);
+
+      pBitmap = tdGetBitmapAddrKv(pTSRow, nKvCols + 1);
 
       for (int32_t iColData = 0; iColData < pBlockData->nColData; iColData++) {
         SColData *pColData = &((SColData *)pBlockData->aColData->pData)[iColData];
 
         while (pColVal && pColVal->cid < pColData->cid) {
-          if (++iter >= pTSchema->numOfCols || ++kvIter >= nKvCols) {
+          if (++iter >= pTSchema->numOfCols) {
             pColVal = NULL;
             break;
           }
@@ -1177,21 +1179,21 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
             }
           }
 
+          colVal.cid = pTColumn->colId;
+          colVal.type = pTColumn->type;
           if (valType == TD_VTYPE_NORM) {
-            colVal.cid = pTColumn->colId;
-            colVal.type = pTColumn->type;
             colVal.flag = CV_FLAG_VALUE;
+            void *val = POINTER_SHIFT(pTSRow, pKvIdx->offset);
             if (IS_VAR_DATA_TYPE(pTColumn->type)) {
-              void *val = POINTER_SHIFT(pTSRow, pKvIdx->offset);
               colVal.value.nData = varDataLen(val);
               colVal.value.pData = varDataVal(val);
             } else {
-              memcpy(&colVal.value.val, POINTER_SHIFT(pTSRow, pKvIdx->offset), tDataTypes[pTColumn->type].bytes);
+              memcpy(&colVal.value.val, val, tDataTypes[pTColumn->type].bytes);
             }
           } else if (valType == TD_VTYPE_NONE) {
-            colVal = COL_VAL_NONE(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NONE;
           } else if (valType == TD_VTYPE_NULL) {
-            colVal = COL_VAL_NULL(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NULL;
           } else {
             ASSERT(0);
           }
@@ -1204,7 +1206,7 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
           code = tColDataAppendValue(pColData, pColVal);
           if (code) goto _err;
           // iter next column - redundant codes
-          if (++iter >= pTSchema->numOfCols || ++kvIter >= nKvCols) {
+          if (++iter >= pTSchema->numOfCols) {
             pColVal = NULL;
             continue;
           }
@@ -1237,21 +1239,21 @@ int32_t tBlockDataAppendRow(SBlockData *pBlockData, TSDBROW *pRow, STSchema *pTS
             }
           }
 
+          colVal.cid = pTColumn->colId;
+          colVal.type = pTColumn->type;
           if (valType == TD_VTYPE_NORM) {
-            colVal.cid = pTColumn->colId;
-            colVal.type = pTColumn->type;
             colVal.flag = CV_FLAG_VALUE;
+            void *val = POINTER_SHIFT(pTSRow, pKvIdx->offset);
             if (IS_VAR_DATA_TYPE(pTColumn->type)) {
-              void *val = POINTER_SHIFT(pTSRow, pKvIdx->offset);
               colVal.value.nData = varDataLen(val);
               colVal.value.pData = varDataVal(val);
             } else {
-              memcpy(&colVal.value.val, POINTER_SHIFT(pTSRow, pKvIdx->offset), tDataTypes[pTColumn->type].bytes);
+              memcpy(&colVal.value.val, val, tDataTypes[pTColumn->type].bytes);
             }
           } else if (valType == TD_VTYPE_NONE) {
-            colVal = COL_VAL_NONE(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NONE;
           } else if (valType == TD_VTYPE_NULL) {
-            colVal = COL_VAL_NULL(pTColumn->colId, pTColumn->type);
+            colVal.flag = CV_FLAG_NULL;
           } else {
             ASSERT(0);
           }
