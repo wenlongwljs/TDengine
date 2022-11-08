@@ -255,7 +255,7 @@ Note: If you include an ORDER BY clause, only one partition can be displayed.
 
 Some special query functions can be invoked without `FROM` sub-clause.
 
-## Obtain Current Database
+### Obtain Current Database
 
 The following SQL statement returns the current database. If a database has not been specified on login or with the `USE` command, a null value is returned.
 
@@ -270,7 +270,7 @@ SELECT CLIENT_VERSION();
 SELECT SERVER_VERSION();
 ```
 
-## Obtain Server Status
+### Obtain Server Status
 
 The following SQL statement returns the status of the TDengine server. An integer indicates that the server is running normally. An error code indicates that an error has occurred. This statement can also detect whether a connection pool or third-party tool is connected to TDengine properly. By using this statement, you can ensure that connections in a pool are not lost due to an incorrect heartbeat detection statement.
 
@@ -313,6 +313,26 @@ TDengine supports POSIX regular expression syntax. For more information, see [Re
 Regular expression filtering is supported only on table names (TBNAME), BINARY tags, and NCHAR tags. Regular expression filtering cannot be performed on data columns.
 
 A regular expression string cannot exceed 128 bytes. You can configure this value by modifying the maxRegexStringLen parameter on the TDengine Client. The modified value takes effect when the client is restarted.
+
+## CASE Expressions
+
+### Syntax
+
+```txt
+CASE value WHEN compare_value THEN result [WHEN compare_value THEN result ...] [ELSE result] END
+CASE WHEN condition THEN result [WHEN condition THEN result ...] [ELSE result] END
+```
+
+### Description
+CASE expressions let you use IF ... THEN ... ELSE logic in SQL statements without having to invoke procedures. 
+
+The first CASE syntax returns the `result` for the first `value`=`compare_value` comparison that is true. 
+
+The second syntax returns the `result` for the first `condition` that is true. 
+
+If no comparison or condition is true, the result after ELSE is returned, or NULL if there is no ELSE part.
+
+The return type of the CASE expression is the result type of the first WHEN WHEN part, and the result type of the other WHEN WHEN parts and ELSE parts can be converted to them, otherwise TDengine will report an error.
 
 ## JOIN
 
