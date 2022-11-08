@@ -323,6 +323,7 @@ void tdSTSRowIterInit(STSRowIter *pIter, STSchema *pSchema);
 void tdSTSRowIterReset(STSRowIter *pIter, STSRow *pRow);
 bool tdSTSRowIterFetch(STSRowIter *pIter, col_id_t colId, col_type_t colType, SCellVal *pVal);
 bool tdSTSRowIterNext(STSRowIter *pIter, SCellVal *pVal);
+bool tdSTSRowIterNextEx(STSRowIter *pIter, SColVal *pVal);
 
 int32_t tdSTSRowNew(SArray *pArray, STSchema *pTSchema, STSRow **ppRow);
 bool    tdSTSRowGetVal(STSRowIter *pIter, col_id_t colId, col_type_t colType, SCellVal *pVal);
