@@ -206,10 +206,6 @@ else
 fi
 
 
-if [[ ${packgeName} =~ "server" ]] ;then
-    echoColor BD " pkill -9 taosd "
-    pkill -9 taosd
-fi
 
 
 echoColor G "===== new workroom path ====="
@@ -338,7 +334,7 @@ elif  ([[ ${packgeName} =~ "arm64" ]] && [[ ${packgeName} =~ "client" ]]);then
     echoColor G "===== install taos-tools arm when package is arm64-client ====="
     cd ${installPath}
     if [ ! -f "taosTools-2.1.3-Linux-x64.tar.gz " ];then
-        wgetFile taosTools-2.1.3-Linux-arm64.tar.gz v2.1.3 web
+        wgetFile taosTools-2.1.3-Linux-x64.tar.gz v2.1.3 web
         tar xf taosTools-2.1.3-Linux-arm64.tar.gz
     fi    
     
