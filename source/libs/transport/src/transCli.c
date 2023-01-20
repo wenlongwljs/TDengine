@@ -778,7 +778,7 @@ static void cliSendCb(uv_write_t* req, int status) {
   SCliMsg* pMsg = !transQueueEmpty(&pConn->cliMsgs) ? transQueueGet(&pConn->cliMsgs, 0) : NULL;
   if (pMsg != NULL) {
     int64_t cost = taosGetTimestampUs() - pMsg->st;
-    if (cost > 1000) {
+    if (cost > 1000 * 10) {
       tWarn("%s conn %p send cost:%dus, send exception", CONN_GET_INST_LABEL(pConn), pConn, (int)cost);
     }
   }
@@ -1153,9 +1153,16 @@ static void cliAsyncCb(uv_async_t* handle) {
   QUEUE_MOVE(&item->qmsg, &wq);
   taosThreadMutexUnlock(&item->mtx);
 
+  while (!QUEUE_IS_EMPTY(&wq)) {
+    queue*   h = QUEUE_HEAD(&wq);
+    SCliMsg* h = QUEUE_DATA(h, SCliMsg, q);
+    if (h) {
+    }
+  }
   int count = 0;
   while (!QUEUE_IS_EMPTY(&wq)) {
     queue* h = QUEUE_HEAD(&wq);
+
     QUEUE_REMOVE(h);
 
     SCliMsg* pMsg = QUEUE_DATA(h, SCliMsg, q);

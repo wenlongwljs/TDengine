@@ -61,6 +61,7 @@ void* rpcOpen(const SRpcInit* pInit) {
   pRpc->failFastThreshold = pInit->failFastThreshold;
   pRpc->failFastInterval = pInit->failFastInterval;
 
+  pRpc->mergeRequest = pInit->mergeRequest;
   // register callback handle
   pRpc->cfp = pInit->cfp;
   pRpc->retry = pInit->rfp;

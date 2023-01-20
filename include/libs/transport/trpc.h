@@ -92,6 +92,8 @@ typedef struct SRpcInit {
   int32_t failFastThreshold;
   int32_t failFastInterval;
 
+  int8_t mergeRequest;
+
   int32_t compressSize;  // -1: no compress, 0 : all data compressed, size: compress data if larger than size
   int8_t  encryption;    // encrypt or not
 
