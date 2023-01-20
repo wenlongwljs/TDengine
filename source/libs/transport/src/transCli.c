@@ -1147,6 +1147,8 @@ static void cliAsyncCb(uv_async_t* handle) {
   SCliThrd*   pThrd = item->pThrd;
   SCliMsg*    pMsg = NULL;
 
+  STrans* pTrans = pThrd->pTransInst;
+  pTrans
   // batch process to avoid to lock/unlock frequently
   queue wq;
   taosThreadMutexLock(&item->mtx);
