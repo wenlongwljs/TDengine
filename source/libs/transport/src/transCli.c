@@ -12,7 +12,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef USE_UV
 #include "transComm.h"
 
 typedef struct SConnList {
@@ -61,6 +60,8 @@ typedef struct SCliMsg {
   int64_t  refId;
   uint64_t st;
   int      sent;  //(0: no send, 1: alread sent)
+
+  struct SCliMsg* next;
 } SCliMsg;
 
 typedef struct SCliThrd {
@@ -128,7 +129,6 @@ static void cliSendCb(uv_write_t* req, int status);
 // callback after conn to server
 static void cliConnCb(uv_connect_t* req, int status);
 static void cliAsyncCb(uv_async_t* handle);
-static void cliIdleCb(uv_idle_t* handle);
 static void cliPrepareCb(uv_prepare_t* handle);
 
 static bool cliRecvReleaseReq(SCliConn* conn, STransMsgHead* pHead);
@@ -1142,25 +1142,58 @@ void cliHandleReq(SCliMsg* pMsg, SCliThrd* pThrd) {
   STraceId* trace = &pMsg->msg.info.traceId;
   tGTrace("%s conn %p ready", pTransInst->label, conn);
 }
+
+static void cliBatchMsg(queue* wq) {
+  queue nq;
+  QUEUE_INIT(&nq);
+
+  SHashObj* hash = taosHashInit(16, taosGetDefaultHashFunction(TSDB_DATA_TYPE_BINARY), true, HASH_NO_LOCK);
+
+  while (!QUEUE_IS_EMPTY(wq)) {
+    queue*   h = QUEUE_HEAD(&wq);
+    SCliMsg* pMsg = QUEUE_DATA(h, SCliMsg, q);
+    QUEUE_REMOVE(h);
+    if (pMsg) {
+      if (REQUEST_NO_RESP(&pMsg->msg)) {
+        STransConnCtx* ctx = pMsg->ctx;
+
+        char*   ip = ctx->epSet.eps[ctx->epSet.inUse].fqdn;
+        int16_t port = ctx->epSet.eps[ctx->epSet.inUse].port;
+        char    key[128] = {0};
+        CONN_CONSTRUCT_HASH_KEY(key, ip, port);
+        SCliMsg** val = taosHashGet(hash, key, strlen(key));
+        if (val == NULL) {
+          taosHashPut(hash, key, strlen(key), &pMsg, sizeof(SCliMsg*));
+          QUEUE_PUSH(&nq, &pMsg->q);
+        } else {
+          SCliMsg* p = (SCliMsg*)(*val);
+          while (p->next != NULL) p = p->next;
+          p->next = pMsg;
+        }
+      } else {
+        QUEUE_PUSH(&nq, &pMsg->q);
+      }
+    }
+  }
+  memcpy(wq, &nq, sizeof(nq));
+  taosHashCleanup(hash);
+}
 static void cliAsyncCb(uv_async_t* handle) {
   SAsyncItem* item = handle->data;
   SCliThrd*   pThrd = item->pThrd;
   SCliMsg*    pMsg = NULL;
 
-  STrans* pTrans = pThrd->pTransInst;
-  pTrans
   // batch process to avoid to lock/unlock frequently
   queue wq;
   taosThreadMutexLock(&item->mtx);
   QUEUE_MOVE(&item->qmsg, &wq);
   taosThreadMutexUnlock(&item->mtx);
 
-  while (!QUEUE_IS_EMPTY(&wq)) {
-    queue*   h = QUEUE_HEAD(&wq);
-    SCliMsg* h = QUEUE_DATA(h, SCliMsg, q);
-    if (h) {
-    }
+  STrans* pTrans = pThrd->pTransInst;
+  if (pTrans->mergeRequest) {
+    cliBatchMsg(&wq);
   }
+
   int count = 0;
   while (!QUEUE_IS_EMPTY(&wq)) {
     queue* h = QUEUE_HEAD(&wq);
@@ -1944,4 +1977,3 @@ int64_t transAllocHandle() {
 
   return exh->refId;
 }
-#endif
