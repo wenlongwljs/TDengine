@@ -127,7 +127,7 @@ SStreamState* streamStateOpen(char* path, SStreamTask* pTask, bool specPath, int
     tstrncpy(statePath, path, 1024);
   }
 
-  char cfgPath[1024];
+  char cfgPath[1030];
   sprintf(cfgPath, "%s/cfg", statePath);
 
   char cfg[1024];
